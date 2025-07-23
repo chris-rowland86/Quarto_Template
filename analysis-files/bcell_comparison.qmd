@@ -1,0 +1,1156 @@
+---
+title: "Bcell Comparison"
+author: "Chris Rowland"
+format:
+  html:
+    self-contained: true
+    embed-resources: true
+    toc: true
+    toc-location: left
+    toc-title: Contents
+    number-sections: true
+    page-layout: full
+    code-fold: true
+    code-overflow: wrap
+    fig-align: center
+    fig-cap-location: top
+    fig-width: 8
+    fig-height: 5
+    fig-dpi: 300
+    html-math-method: katex
+    theme: 
+        - cosmo
+        - custom.scss
+    
+execute:
+  eval: true
+  echo: true
+  output: true
+  message: false
+  warning: false
+  error: true
+  freeze: true
+  
+knitr:
+  opts_chunk:
+    out.width: 90%
+    fig.showtext: TRUE
+    collapse: true
+    comment: "#>" 
+---
+
+```{r setup}
+#| code-summary: Loads packages
+
+# Uses Librarian Package to install necessary packages
+librarian::shelf(
+    labelled,
+    here,
+    data.table,
+    openxlsx2,
+    writexl,
+    janitor,
+    expss,
+    tidyverse,
+    stringr,
+    stringi,
+    lubridate,
+    zoo,
+    scales,
+    glue,
+    gtsummary,
+    gtreg,
+    ggsurvfit,
+    survival,
+    gt,
+    gtExtras,
+    flextable,
+    reactable,
+    reactablefmtr,
+    htmltools,
+    ggplot2,
+    ggalluvial,
+    patchwork,
+    ggrepel,
+    ggstatsplot,
+    ggdist,
+    ggtext,
+    ggforce,
+    cowplot,
+    rvg,
+    sysfonts,
+    showtext,
+    officer,
+    webshot2,
+    knitr,
+    DT,
+    haven,
+    XML,
+    odbc,
+    RODBC,
+    reprex,
+    cardx, # dependency of gtsummary
+    unigd, # needed for plots
+    smd, # depedndency of gtsummary
+    cran_repo = "https://cloud.r-project.org/",
+    quiet = TRUE
+)
+
+# Uses package "here" to define "top-level" of folder hierarchy (aka project root)
+# using "here::i_am()" to define path of analysis file, which "here" uses to infer what the project root is (aka 109 in this instance)
+here::i_am("analysis-files/rms401_dashboard.qmd")
+
+# labelled package is used to label variables in data sets
+library(labelled)
+
+# specifies file locations
+library(here)
+# favorite data manipulation
+library(data.table)
+# openxlsx2 is an advanced package for manipulating excel files
+# utilized this package in custom function for exporting stylized flexables to excel and maintaining formatting
+library(openxlsx2)
+# writexl is my preferred package for exporting data to excel files
+# openxlsx2 autocoded numeric data columns as dates (facepalm)
+# writexl is also FASTER than openxlsx2 and produces smaller file sizes
+library(writexl)
+# cleans column names
+library(janitor)
+# adds labels to columns
+library(expss)
+
+# tidyverse data manipulation
+library(tidyverse)
+# manipulate strings
+library(stringr)
+# determine text encoding for character vectors
+library(stringi)
+# manipulate dates
+library(lubridate)
+# zoo also works with dates
+library(zoo)
+# scales modifies axes on ggplots
+# clutch for convering decimals to %'s
+library(scales)
+library(glue)
+
+# Favorite Clinical Analysis packages!!!
+
+# gtsummary streamlines summary tables for clinical data
+library(gtsummary)
+
+# gtreg facilitates AE summaries where denominator has to be unique pts
+library(gtreg)
+
+# ggsurvfit best package for KM data since integrates with other
+# "gg" objects / packages and correctly scales N at risk table
+library(ggsurvfit)
+
+# Need to load survival package in order to use "Surv" function
+# However ggsurvfit recommends using survfit2 from it's own package
+# which acts as a wrapper for survfit from surival package
+library(survival)
+
+# OLD KM plotting package - don't use, less flexible
+# library(survminer)
+
+# gtsummary & gtreg output summary tables using "gt" syntax
+# gt is the "table" compliment to ggplot
+# While it's powerful, it has limited output options
+# however, can be converted to flextable for integration into MS docs
+library(gt)
+# gtExtras adds customizations to gt
+library(gtExtras)
+# flextable integrates w/ PP and other MS docs via officer
+library(flextable)
+# reactable and it's formatting companion package generate beautiful tables
+# but only in HTML or Shiny
+library(reactable)
+library(reactablefmtr)
+# enables HTML formatting in reactable tables
+library(htmltools)
+
+# All plotting packages and extensions
+library(ggplot2)
+library(ggalluvial)
+library(patchwork)
+library(ggrepel)
+library(ggstatsplot)
+library(ggdist)
+# adds geom_richtext for rendering markdown & HTML syntax
+# adds geom_textbox for dynamically wrapping text
+library(ggtext)
+library(ggforce)
+# combine plots, add images to plots, etc.
+library(cowplot)
+
+library(sysfonts)
+# Loading Google fonts (https://fonts.google.com/)
+# font_add_google("Cabin", "cabi")
+# Source Sans Pro is the google-font equivalent of corbel,
+# which is a windows font
+# font_add_google("Source Sans Pro", "corbel_g")
+
+# Adds SYSTEM fonts stored locally on computer!!!
+# This adds the TRUE windows version of corbel
+# font_add(
+#     family = "corbel_w",
+#     regular = "C:/Windows/Fonts/corbel.ttf",
+#     bold = "C:/Windows/Fonts/corbelb.ttf",
+#     italic = "C:/Windows/Fonts/corbeli.ttf",
+# )
+
+# renders fonts pulled from sysfonts::font_add_google in ggplot
+library(showtext)
+# sets showtext options to render text at 300 dpi which is the default
+# dpi defined in the YAML for rendering ggplots
+showtext_opts(dpi = 300)
+# prevents showtext from automatically running
+# rather use showtext_begin() and
+# showtext_end() to manually specify when
+# to run showtext to prevent text from being
+# rendered as images when exporting to officer
+showtext_auto(FALSE)
+
+# export data to PP files and more
+library(officer)
+
+# Converts gt tables to png images
+library(webshot2)
+
+# knits documents
+# provides kable function for rendering tables in HTML
+library(knitr)
+
+# DT package offers "datatable" function, for customizing tables in html
+library(DT)
+
+# haven enables R to read SAS datasets
+library(haven)
+
+# parses XML files created by ODM exports
+library(XML)
+
+# odbc & RODBC are two different packages used for manipulating Microsoft Access Databases using SQL syntax
+library(odbc)
+library(RODBC)
+
+library(reprex)
+
+library(cardx) # dependency of gtsummary
+library(unigd) # needed for plots
+library(smd) # depedndency of gtsummary
+```
+
+```{r color palette}
+#| code-summary: TG color palette functions
+
+#' Function to extract TG colors as hex codes
+#'
+#' @param ... accepts character names of TG colors
+#'
+#' If no argument is provided, then returns the full palette of TG colors
+#'
+#' NOTE: the palette of all available colors is stored INSIDE the function
+#'
+tg_corp_color <- function(...) {
+    # Color Key for TG color scheme
+    tg_corp_colors <- c(
+        `ice_blue` = "#BBCBD3",
+        `navy_blue` = "#121B4D",
+        `green` = "#99CC33",
+        `sky_blue` = "#3EA7F3",
+        `royal_blue` = "#003494",
+        `warm_gray` = "#909FA7",
+        `yellow` = "#FEE568",
+        `red` = "#FF2600"
+    )
+
+    cols <- c(...)
+
+    if (is.null(cols)) {
+        return(tg_corp_colors)
+    }
+
+    tg_corp_colors[cols]
+}
+
+#' Function ramps from white to black through center_color outputting 9 colors
+#' including black and white. Selecting the colors 3:7 keeps 50% darker,
+#' 25% darker, center color, 25% lighter, and 50% lighter
+#'
+#' @param center_color accepts 1 color of interest to act as center color being
+#' darkened and lightened
+#'
+ramp_hues <- function(center_color = NULL, ...) {
+    if (is.null(center_color)) {
+        return("please specify a color")
+    }
+
+    colorRampPalette(c(
+        "black",
+        center_color,
+        "white"
+    ))(9)[2:8]
+}
+
+#' Function arranges colors in to specific palettes and stores as a LIST
+#' inside of the function
+#'
+#' @param palette accepts the name of desired palette, defaults to "main"
+#'
+#' function outputs NAMED colors (i.e. name and hex code)
+#'
+#' hues palettes ramp from white to black through specific color using 9 colors
+#' including black and white. Selecting the colors 3:7 keeps 50% darker,
+#' 25% darker, center color, 25% lighter, 50% lighter
+#'
+#' To see list of all available palettes, use "all"
+#'
+#' to view colors and codes use:
+#' scales::show_col(tg_corp_palette("main"), cex_label = 2)
+#'
+#' To select specific hues from hue_palettes
+#' place index of desired color in brackets following function:
+#' tg_corp_palette("ice_blue")[4]
+tg_corp_palette <- function(palette = "main", ...) {
+    # Define custom palettes here
+    tg_corp_palettes <- list(
+        `main` = tg_corp_color("green", "royal_blue", "navy_blue"),
+        `highlight` = tg_corp_color("green", "ice_blue"),
+        `ae` = tg_corp_color("sky_blue", "warm_gray", "yellow", "red")
+    )
+
+    # Grabs all colors in tg_corp_color function
+    # the way the tg_corp_color function is written, defaults to outputting
+    # all the colors if no input is provided
+    all_colors <- tg_corp_color()
+
+    # Converts from character vector to LIST in order to purrr:map it
+    all_colors <- as.list(all_colors)
+
+    # applies ramp_hues function to all colors
+    # NOTE: these ramped-hues-palettes will inherit the NAME of the color,
+    # so the entire palette will be named the color name
+    hue_palettes <- purrr::map(all_colors, ramp_hues)
+
+    # Appends the hue_palettes to the end of the defined palettes
+    tg_corp_palettes <- c(tg_corp_palettes, hue_palettes)
+
+    if (palette == "all") {
+        return(tg_corp_palettes)
+    }
+
+    tg_corp_palettes[[palette]]
+}
+
+#' This function OUTPUTS ANOTHER FUNCTION, which accepts "n" as an argument
+#'
+#' @param palette accepts name of desired palette, defaults to "main"
+#' @param direction controls the direction of the palette (<0 reverses order)
+#'
+#' The "n" in the inner function refers to the number of colors that would be
+#' needed for a particular plot.
+#'
+#' Creates a discrete palette that will use the first `n` colors from
+#' the supplied color values when the palette has enough colors.
+#' Otherwise, use an interpolated color palette leveraging colorRampPalette().
+#'
+#' Can be used with setNames() to code NAMED palettes so that specfic groups
+#' are always the same color!!!
+#'
+#' An EXAMPLE:
+#' arms <- c("ubli", "teri")
+#' arms_named_palette = setNames(object = palette_gen()(length(unique(arms))), nm = unique(arms))
+palette_gen <- function(palette = "main", direction = 1) {
+    force(palette)
+    function(n) {
+        if (n <= length(tg_corp_palette(palette))) {
+            all_colors <- tg_corp_palette(palette)
+
+            all_colors <- unname(unlist(all_colors))
+
+            all_colors <- if (direction >= 0) all_colors else rev(all_colors)
+
+            all_colors[1:n]
+        } else {
+            pal <- tg_corp_palette(palette)
+
+            pal <- if (direction >= 0) pal else rev(pal)
+
+            colorRampPalette(pal, alpha = FALSE)(n)
+        }
+    }
+}
+
+#' Color scale constructor for TG colors
+#'
+#' @param palette Character name of palette in tg_corp_palette
+#' @param discrete Boolean indicating whether color aesthetic is discrete or not
+#' @param direction Boolean indicating whether the palette should be reversed
+#' @param ... Additional arguments passed to discrete_scale() or
+#'            scale_color_gradientn(), used respectively when discrete is TRUE or FALSE
+#'
+scale_color_tg <- function(palette = "main", discrete = TRUE, direction = 1, ...) {
+    pal <- palette_gen(palette = palette, direction = direction)
+
+    if (discrete) {
+        ggplot2::scale_colour_discrete(
+            paste0("tg_", palette),
+            type = pal,
+            ...
+        )
+    } else {
+        scale_color_gradientn(colors = pal(256), ...)
+    }
+}
+
+#' Fill scale constructor for TG colors
+#'
+#' @param palette Character name of palette in tg_corp_palette
+#' @param discrete Boolean indicating whether fill aesthetic is discrete or not
+#' @param direction Boolean indicating whether the palette should be reversed
+#' @param ... Additional arguments passed to discrete_scale() or
+#'            scale_color_gradientn(), used respectively when discrete is TRUE or FALSE
+#'
+scale_fill_tg <- function(palette = "main", discrete = TRUE, direction = 1, ...) {
+    pal <- palette_gen(palette = palette, direction = direction)
+
+    if (discrete) {
+        ggplot2::scale_fill_discrete(
+            paste0("tg_", palette),
+            type = pal,
+            ...
+        )
+    } else {
+        scale_fill_gradientn(colors = pal(256), ...)
+    }
+}
+```
+
+```{r loaded fonts}
+#| code-summary: Custom functions for viewing fonts
+
+font_options <- function(...) {
+    entered_fonts <- c(...)
+    # pulls currently loaded font families using sysfonts::font_families
+    loaded_fonts <- sysfonts::font_families()
+    tib <- tibble(
+        family = loaded_fonts,
+        x = 0,
+        y = seq(0.0, 1, length.out = length(loaded_fonts))
+    )
+    if (is.null(entered_fonts)) {
+        return(
+            tib %>%
+                ggplot(aes(x, y, label = family)) +
+                geom_text(family = tib$family, size = 8, hjust = 0, col = "dodgerblue4") +
+                coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+                theme_void()
+        )
+    }
+
+    loaded_fonts
+}
+```
+
+```{r special char}
+#| code-summary: stores UTF-8 (unicode) special characters as variables
+
+unicode_greater_than_equal <- utf8::as_utf8("\u2265") # greater than equal to
+unicode_less_than_equal <- utf8::as_utf8("\u2264") # less than equal to
+unicode_mu <- utf8::as_utf8("\u03BC") # mu
+unicode_plus_minus <- utf8::as_utf8("\u00B1") # plus-minus
+```
+
+```{r theme}
+#| code-summary: Custom formatting functions also contains function to output to PPTX
+
+# Customizes theme attributes - best way to customize plot area
+# Apply FONTS to graphs HERE
+theme_customs <- theme(
+    # globally sets font for all elements
+    text = element_text(
+        family = "Arial",
+        size = 18,
+        color = "black"
+    ),
+    # Centers Plot Title
+    plot.title = element_text(
+        # bolds title
+        face = "bold",
+        # centers title
+        hjust = 0.5
+    ),
+    # Centers subtitle
+    plot.subtitle = element_text(
+        # bolds title
+        face = "bold",
+        # centers title
+        hjust = 0.5
+    ),
+    # Remove plot background
+    plot.background = element_blank(),
+    # Remove panel background
+    panel.background = element_blank(),
+    # Remove panel boarder
+    panel.border = element_blank(),
+    # Removes major gridlines
+    panel.grid.major = element_blank(),
+    # Removes major gridlines
+    panel.grid.minor = element_blank(),
+    # Removes strip background
+    strip.background = element_blank(),
+
+    # axis attributes (both x & y)
+    # title
+    axis.title = element_text(
+        # ensures text is black
+        color = "black",
+        # axis TITLE font size
+        size = 18,
+        # bolds title
+        face = "bold",
+        # centers title
+        hjust = 0.5
+    ),
+    # labels
+    axis.text = element_text(
+        # ensures text is black
+        color = "black",
+        # axis label font size
+        size = 18,
+        angle = 0,
+        hjust = 0.5,
+        vjust = 0.5
+    ),
+    # axis line
+    axis.line = element_line(color = "black"),
+    # axis ticks
+    axis.ticks = element_line(color = "black"),
+
+    # x-axis specific attributes
+    # title
+    axis.title.x = element_text(
+        # adds margin to axis title to prevent overlap with labels
+        # need to specify ggplot2's margin function
+        margin = ggplot2::margin(
+            t = 15,
+            r = 0,
+            b = 0,
+            l = 0,
+            unit = "pt"
+        )
+    ),
+
+    # y-axis attributes
+    # title
+    axis.title.y = element_text(
+        # adds margin to axis title to prevent overlap with labels
+        # need to specify ggplot2's margin function
+        margin = ggplot2::margin(
+            t = 0,
+            r = 15,
+            b = 0,
+            l = 0,
+            unit = "pt"
+        )
+    ),
+
+    # Legend attributes
+    # background of legend
+    legend.background = element_blank(),
+    # background underneath legend keys
+    legend.key = element_blank(),
+    # title of legend
+    legend.title = element_text(
+        # ensures text is black
+        color = "black",
+        # axis TITLE font size
+        size = 18,
+        # bolds title
+        face = "bold",
+        # centers title
+        # 0 (left) to 1 (right)
+        hjust = 0.5
+    ),
+    # legend item labels
+    legend.text = element_text(
+        size = 18,
+        color = "black",
+        # centers title
+        # 0 (left) to 1 (right)
+        hjust = 0.5
+    ),
+    # the position of legends ("none", "left", "right", "bottom", "top"
+    # or two-element numeric vector)
+    legend.position = "right"
+)
+
+# Globally sets theme to be applied to all plots!
+theme_set(theme_minimal() + theme_customs)
+
+# Creates a placeholder pptx file for exporting EDITABLE ggplots
+# by default Quarto will render gt tables as editable, but not so much with figs
+
+# Uses officer package to export data to PP
+# Stores TG template file in variable named editable_plots
+editable_plots <-
+    officer::read_pptx(here("source-files", "TG Therapeutics Template - Original.pptx"))
+
+# Removes the slides in the Template so that first slide added is from R script
+for (i in 1:length(editable_plots)) {
+    editable_plots <- officer::remove_slide(editable_plots)
+}
+
+# Use officer::layout_summary(my_pres) to see available slide layouts defined in slide master
+# Use officer::layout_properties(x = my_pres, layout = "Title Slide") to see the content holders in specified layout
+
+# Creates function to convert ggplots to rvg graphics
+convert_to_rvg <- function(plot) {
+    rvg::dml(
+        ggobj = plot,
+        # strips background by setting to NA
+        bg = "NA",
+        # sets font to Arial
+        fonts = list(sans = "Arial"),
+        # ensures plot is editable
+        editable = TRUE
+    )
+}
+
+# stored insertion of rvg graphic into slide as a function
+# includes argument to customize title!
+add_to_pptx <- function(rvg_graphic, title = "Title", title_lines = "one", top = 1.5) {
+    # uses if else to determine slide layout based on lines argument
+    if (title_lines == "one") {
+        # add_slide function adds a slide with 1-line title layout and theme specified
+        editable_plots <- officer::add_slide(editable_plots,
+            layout = "Title and Content_No Graphic",
+            master = "Office Theme"
+        )
+    } else {
+        # add_slide function adds a slide with 1-line title layout and theme specified
+        editable_plots <- officer::add_slide(editable_plots,
+            layout = "Title Two Line and Content_No Graphic",
+            master = "Office Theme"
+        )
+    }
+
+    # defines properties for formatting title text
+    fp_title <- fp_text(
+        font.size = 36,
+        font.family = "Arial",
+        color = unlist(unname(tg_corp_color("royal_blue")))
+    )
+
+    # Adds table/figure defined in first argument to slide
+    editable_plots <- officer::ph_with(
+        x = editable_plots,
+        # specifies location of figure in inches from top left corner (via left, top)
+        # defines figure dimensions (via width, height)
+        location = ph_location_template(
+            type = "body",
+            left = 0.3,
+            top = top,
+            width = 10,
+            height = 5
+        ),
+        # Uses rvg package to make plots editable as rvg graphics
+        # dml function within rvg package is what achieves the editable capability
+        # NOTE: this is where it was necessary to print the plot
+        value = rvg_graphic
+    )
+
+    # Adds title defined in second argument to slide
+    editable_plots <- officer::ph_with(
+        x = editable_plots,
+        # specifies location of title using type of placeholder
+        location = ph_location_type(type = "title"),
+        # formats title applying attributes defined in fp_title
+        value = fpar(title, fp_t = fp_title)
+    )
+}
+
+# theme for gtsummary tables
+# stacks both jama (places statistic in lable rows as opposed to footer)
+# and compact (reduces font size and cell padding) themes
+gtsummary::theme_gtsummary_journal(journal = "jama")
+gtsummary::theme_gtsummary_compact()
+
+# defines values in gtsummary tables that should be replaced with a dash
+na_to_dash <- function(x) {
+    case_when(
+            x == "0 (0%)" ~ "\U2014",
+            str_detect(x, "NA") ~ "\U2014",
+            str_detect(x, "Inf") ~ "\U2014",
+            TRUE ~ x)
+}
+
+# defines a custom function for formatting flextables
+# canNOT use set_flextable_defaults() due to convertting
+# summary tables from gtsummary package's as_flex_table()
+# which does NOT call on flextable's default settings
+# womp womp...
+# workaround is coding a custom function that applies formats
+# an already existing flextable
+
+# this function accepts a table already rendered as a flextable
+# and applies formatting functions to obtain desired output
+format_flextable <- function(x) {
+    # defines boarder style
+    std_border <- officer::fp_border(
+        color = tg_corp_color("ice_blue"),
+        style = "solid",
+        # must be an integer >= 0
+        width = 1
+    )
+    # flextable inherits the formats below
+    x <-
+        # removes all borders
+        flextable::border_remove(x) |>
+        # customizes horizontal lines
+        flextable::hline(
+            part = "all",
+            border = std_border
+        ) |>
+        # sets font size for entire table
+        flextable::fontsize(
+            size = 12,
+            part = "all"
+        ) |>
+        # changes font size for footer
+        flextable::fontsize(
+            size = 8,
+            part = "footer"
+        ) |>
+        # sets font style
+        flextable::font(
+            fontname = "Arial",
+            part = "all"
+        ) |>
+        # centers vertical alignment
+        flextable::valign(
+            valign = "center",
+            part = "body"
+        ) |>
+        # modifies line spacing
+        flextable::line_spacing(
+            space = 1,
+            part = "all"
+        ) |>
+        # sets column widths to "fixed" as opposed to "auto"
+        flextable::set_table_properties(layout = "fixed")
+}
+
+#' Export a flextable into a .xlsx file
+#'
+#' @param table A flextable
+#' @param file_name Path to the Excel file to be created
+#' @return Returns an .xlsx file based on a flextable
+export_flextable_to_excel <- function(table, file_name) {
+    # grabs the data from the flextable and stores in data variable
+    data <- table$body$dataset
+
+    # grabs the background colors of the flextable and
+    # stores in bgcolor variable
+    bgcolor <- as.data.frame(table$body$styles$cells$background.color$data)
+
+    # uses openxlsx2 to create a new workbook
+    wb <- openxlsx2::wb_workbook() |>
+        # adds a worksheet
+        openxlsx2::wb_add_worksheet("Sheet1") |>
+        # adds data to worksheet
+        openxlsx2::wb_add_data("Sheet1", x = data)
+
+    # loops through all the rows and columns to add the background color
+    # in a cell-specific manner
+    for (desc in 1:ncol(data)) {
+        for (prod in 1:nrow(data)) {
+            # finds the background color of cell (either "transparent or
+            # hex code") at the specific index (e.g. [1, 1])
+            cell_bgcolor <- bgcolor[prod, desc]
+
+            # ensures all background colors are associated with a hex code
+            # for "transparent" backgrounds, forces white hex code of "#FFFFFF"
+            cell_color <- openxlsx2::wb_color(
+                hex = ifelse(
+                    cell_bgcolor == "transparent",
+                    "#FFFFFF",
+                    cell_bgcolor
+                )
+            )
+
+            # uses wb_dims helper function to figure out dims argument,
+            # which is the excel location of the cell to be colored (e.g. A1)
+            cell_dims <- openxlsx2::wb_dims(prod + 1, desc)
+
+            # APPLIES the background color to the specigic cell location
+            openxlsx2::wb_add_fill(
+                wb,
+                # cell_dims defined above
+                dims = cell_dims,
+                # cell_color defined above
+                color = cell_color
+            )
+        }
+    }
+
+    # saves workbook as an excel file
+    openxlsx2::wb_save(
+        wb,
+        # passes incoroprate supplied file_name argument within
+        # here function to generate full file 
+        # path, also uses paste0 to add .xlsx file type ending
+        file = here("output-files", paste0(file_name, ".xlsx")),
+        # overwrites existing files with the same name
+        overwrite = TRUE
+    )
+}
+```
+
+```{r import export functions}
+#| code-summary: Custom Import / Export functions
+
+#' Imports Excel files from a specified folder and assigns them to the global environment.
+#'
+#' This function reads a single sheet from an Excel file in a specified folder and assigns it
+#' to the global environment with the name specified by the 'file_name' argument. The sheet is
+#' converted to a data table using the 'as.data.table' function from the 'data.table' package,
+#' and the column names are cleaned using the 'clean_names' function from the 'janitor' package.
+#'
+#' @param folder A string specifying the name of the folder containing the Excel file.
+#' @param file_name A string specifying the name of the Excel file to read, which will also become the
+#' variable name.
+#' @param sheet A string specifying the name of the sheet to read.
+#' @return This function is called for its side effect, which is to assign the resulting
+#' data table to the global environment with the name specified by the 'file_name' argument.
+#' The function returns invisibly.
+#' @examples
+#' import_excel_files_to_variables(folder = "data", file_name = "my_data.xlsx", sheet = "my_sheet")
+#' # The data table read from 'my_sheet' in 'my_data.xlsx' is now assigned to a variable
+#' # with the same name as the file_name in the global environment.
+import_excel_files_to_variables <- function(folder, file_name, sheet){
+  
+  assign(
+    # variable name
+    # lower cases file names
+    x = stringr::str_to_lower(
+        # removes ending suffix
+        str_remove(file_name, ".xlsx")),
+    # data to be stored in variable name
+    # converts to data.table
+    value = as.data.table(
+        # cleans column names
+        janitor::clean_names(
+            # uses openxlsx2 to read data
+             openxlsx2::wb_to_df(
+                # specifies location of file
+                here::here(folder, file_name),
+                # sheet name variable from function input
+                sheet = sheet
+             )
+           )
+         ),
+    # assigns to global environment
+    envir = .GlobalEnv
+  )
+ invisible() 
+}
+
+#' Imports tables from a specified Microsoft Access Database and assigns them to the global
+#' environment.
+#'
+#' This function reads tables from a Microsoft Access Database and assigns it
+#' to the global environment with the name specified by the 'table_name' argument. The table is
+#' converted to a data table using the 'as.data.table' function from the 'data.table' package,
+#' and the column names are cleaned using the 'clean_names' function from the 'janitor' package.
+#' NOTE: variable name in the global environment will be lowercased
+#'
+#' @param connection A string specifying the name of the connection to the Microsoft Access Database
+#' generated by RODBC::odbcDriverConnect().
+#' @param table_name A string specifying the name of the table to read, which will also become the
+#' variable name.
+#' @return This function is called for its side effect, which is to assign the resulting
+#' data table to the global environment with the name specified by the 'table_name' argument.
+#' The function returns invisibly.
+#' @examples
+#' import_access_tables_to_variables(connection = "connection", table_name = "table")
+#' The data table read from 'table_name' in the Microsoft Access Database specified by 'connection'
+#' is now assigned to a variable with the same name as the table_name in the global environment.
+import_access_tables_to_variables <- function(connection, table_name){
+  
+  assign(x = str_to_lower(table_name),
+         value = as.data.table(
+           janitor::clean_names(
+             sqlFetch(connection, table_name)
+           )
+         ),
+         envir = .GlobalEnv
+  )
+ invisible() 
+}
+
+#' Imports SAS files from a specified folder and assigns them to the global environment.
+#'
+#' This function reads a single .sas7bdat SAS file in a specified folder and assigns it
+#' to the global environment with the name specified by the 'file_name' argument. The .sas7bdat SAS file is
+#' converted to a data table using the 'as.data.table' function from the 'data.table' package,
+#' and the column names are cleaned using the 'clean_names' function from the 'janitor' package.
+#'
+#' @param folder A string specifying the name of the folder containing the SAS file.
+#' @param file_name A string specifying the name of the .sas7bdat SAS file to read, which will also become
+#' the variable name.
+#' @return This function is called for its side effect, which is to assign the resulting
+#' data table to the global environment with the name specified by the 'file_name' argument.
+#' The function returns invisibly.
+#' @examples
+#' import_sas_files_to_variables(folder = "data", file_name = "my_data.sas7bdat")
+#' # The data table read from 'my_data.sas7bdat' file in 'data' folder is now assigned to a variable
+#' # with the same name as the file_name in the global environment.
+import_sas_files_to_variables <- function(folder, file_name){
+  
+  assign(
+    # variable name
+    # lower cases file names
+    x = stringr::str_to_lower(
+        # removes ending suffix
+        stringr::str_remove(file_name, ".sas7bdat")
+        ),
+    # data to be stored in variable name
+    # converts to data.table
+    value = as.data.table(
+        # cleans column names
+        janitor::clean_names(
+            # uses haven to read data
+            haven::read_sas(
+                # specifies location of file
+                here::here(folder, file_name)
+                )
+            )
+        ),
+    # assigns to global environment
+    envir = .GlobalEnv
+  )
+ invisible() 
+}
+
+#' Imports XPT files from a specified folder and assigns them to the global environment.
+#'
+#' This function reads a single .xpt file in a specified folder and assigns it
+#' to the global environment with the name specified by the 'file_name' argument. The .xpt file is
+#' converted to a data table using the 'as.data.table' function from the 'data.table' package,
+#' and the column names are cleaned using the 'clean_names' function from the 'janitor' package.
+#'
+#' @param folder A string specifying the name of the folder containing the .xpt file.
+#' @param file_name A string specifying the name of the .xpt file to read, which will also become
+#' the variable name.
+#' @return This function is called for its side effect, which is to assign the resulting
+#' data table to the global environment with the name specified by the 'file_name' argument.
+#' The function returns invisibly.
+#' @examples
+#' import_xpt_files_to_variables(folder = "data", file_name = "my_data.xpt")
+#' # The data table read from 'my_data.xpt' file in 'data' folder is now assigned to a variable
+#' # with the same name as the file_name in the global environment.
+import_xpt_files_to_variables <- function(folder, file_name){
+  
+  assign(
+    # variable name
+    # lower cases file names
+    x = stringr::str_to_lower(
+        # removes ending suffix
+        stringr::str_remove(file_name, ".xpt")
+        ),
+    # data to be stored in variable name
+    # converts to data.table
+    value = as.data.table(
+        # cleans column names
+        janitor::clean_names(
+            # uses haven to read data
+            haven::read_xpt(
+                # specifies location of file
+                here::here(folder, file_name)
+                )
+            )
+        ),
+    # assigns to global environment
+    envir = .GlobalEnv
+  )
+ invisible() 
+}
+
+#' Imports CSV files from a specified folder and assigns them to the global environment.
+#'
+#' This function reads a single .csv file in a specified folder and assigns it
+#' to the global environment with the name specified by the 'file_name' argument. The .csv file is
+#' converted to a data table using the 'as.data.table' function from the 'data.table' package,
+#' and the column names are cleaned using the 'clean_names' function from the 'janitor' package.
+#'
+#' @param folder A string specifying the name of the folder containing the .csv file.
+#' @param file_name A string specifying the name of the .csv file to read, which will also become
+#' the variable name.
+#' @return This function is called for its side effect, which is to assign the resulting
+#' data table to the global environment with the name specified by the 'file_name' argument.
+#' The function returns invisibly.
+#' @examples
+#' import_csv_files_to_variables(folder = "data", file_name = "my_data.csv")
+#' # The data table read from 'my_data.csv' file in 'data' folder is now assigned to a variable
+#' # with the same name as the file_name in the global environment.
+import_csv_files_to_variables <- function(folder, file_name){
+  
+  assign(
+    # variable name
+    # lower cases file names
+    x = stringr::str_to_lower(
+        # removes ending suffix
+        stringr::str_remove(file_name, ".csv")
+        ),
+    # data to be stored in variable name
+    # cleans column names
+    value = janitor::clean_names(
+        # uses data.table to read data
+        # automatically converts to data.table
+        data.table::fread(
+            # specifies location of file
+            here::here(folder, file_name)
+            )
+        ),
+    # assigns to global environment
+    envir = .GlobalEnv
+  )
+ invisible() 
+}
+
+#' Exports data.tables as Excel files
+#'
+#' this function accepts a data.table and a file name for exported Excel file
+#' automatically adds .xlsx suffix
+#' files are exported to "output-files" folder which must exist
+#' @param data a data.table to be exported
+#' @param file_name a string specifying file name
+export_to_excel <- function(data, file_name) {
+    writexl::write_xlsx(data,
+        path = here("output-files", paste0(file_name, ".xlsx")),
+        col_names = TRUE,
+        format_headers = TRUE
+    )
+}
+```
+
+```{r date functions}
+#| code-summary: Custom Date manipulation functions
+
+# builds function for finding last day of each month, given a date
+last_day <- function(date) {
+    ceiling_date(date, "month") - days(1)
+}
+
+# builds custom start dates as first day of the month and january if no month
+complete_start_date <- function(day, month, year) {
+    # converts inputs to character
+    day_c <- str_to_upper(as.character(day))
+    month_c <- str_to_upper(as.character(month))
+    year_c <- str_to_upper(as.character(year))
+
+    # replaces "UNK" with "01" for day
+    day_c <- fifelse(str_detect(day_c, "UN"), "01", day_c)
+
+    # replaces "UNK" with "JAN" for day and month
+    # uses fcase to ensure month is in %b format
+    month_c <- fcase(
+        str_detect(month_c, "UNK"), "JAN",
+        month_c == "UN", "JAN",
+        month_c == "01", "JAN",
+        month_c == "02", "FEB",
+        month_c == "03", "MAR",
+        month_c == "04", "APR",
+        month_c == "05", "MAY",
+        month_c == "06", "JUN",
+        month_c == "07", "JUL",
+        month_c == "08", "AUG",
+        month_c == "09", "SEP",
+        month_c == "10", "OCT",
+        month_c == "11", "NOV",
+        month_c == "12", "DEC",
+        !is.na(month_c), month_c
+    )
+    # year is free text to replacing non-numeric values with "NA" for year
+    year_c <- fifelse(str_detect(year_c, "[^0-9]"), "NA", year_c)
+
+    # date as a character string
+    date_c <- paste0(as.character(year_c), "-", month_c, "-", day_c)
+
+    # converts to date class
+    fifelse(str_detect(date_c, "NA"), NA, as.IDate(date_c, format = "%Y-%b-%d"))
+}
+
+# builds custom end dates as last day of the month and december if no month
+complete_end_date <- function(day, month, year) {
+    # converts inputs to character
+    day_c <- str_to_upper(as.character(day))
+    month_c <- str_to_upper(as.character(month))
+    year_c <- str_to_upper(as.character(year))
+
+    # replaces "UNK" with "28" for day
+    day_c <- fifelse(str_detect(day_c, "UN"), "28", day_c)
+
+    # replaces "UNK" with "DEC" for month
+    month_c <- fcase(
+        str_detect(month_c, "UNK"), "DEC",
+        month_c == "UN", "DEC",
+        month_c == "01", "JAN",
+        month_c == "02", "FEB",
+        month_c == "03", "MAR",
+        month_c == "04", "APR",
+        month_c == "05", "MAY",
+        month_c == "06", "JUN",
+        month_c == "07", "JUL",
+        month_c == "08", "AUG",
+        month_c == "09", "SEP",
+        month_c == "10", "OCT",
+        month_c == "11", "NOV",
+        month_c == "12", "DEC",
+        !is.na(month_c), month_c
+    )
+
+    # year is free text to replacing non-numeric values with "NA" for year
+    year_c <- fifelse(str_detect(year_c, "[^0-9]"), "NA", year_c)
+
+    # date as a character string
+    date_c <- paste0(as.character(year_c), "-", month_c, "-", day_c)
+
+    # converts to date class
+    date_int <- fifelse(str_detect(date_c, "NA"), NA, base::as.Date(date_c, format = "%Y-%b-%d"))
+
+    # converts from 28th to actual last day but only if day is unk
+    as.IDate(
+        fifelse(day == "UNK", last_day(date_int), date_int)
+    )
+}
+
+# converts days to months using 30.4375
+days_to_months <- function(days) {
+    # rounds months to two decimal places
+    round(days / 30.4375, 2)
+}
+
+# converts days to years using 365.25
+days_to_years <- function(days) {
+    # rounds years to two decimal places
+    round(days / 365.25, 2)
+}
+
+# converts ITime durations in HH:MM to minutes
+hhmm_to_min <- function(hhmm) {
+    # pulls hour component and multiplies by 60 then adds minute component
+    hour(hhmm) * 60 + minute(hhmm)
+}
+```
+
+```{r custom fuctions}
+my_iqr <- function(data, ...) {
+  iqr_25 <- quantile(data, probs = 0.25, na.rm = TRUE, type = 2)
+  iqr_75 <- quantile(data, probs = 0.75, na.rm = TRUE, type = 2)
+  paste(iqr_25, "-", iqr_75)
+}
+```
